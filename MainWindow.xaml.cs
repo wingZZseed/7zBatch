@@ -37,11 +37,14 @@ namespace _7zBatch {
 
 		private const string CMD_ARGUMENTS_ATTR = " -mtr=off";
 
+		private Dictionary<string, string> method = new Dictionary<string, string>() {
+			{ " -m0=LZMA", "LZMA" },
+			{ "", "LZMA2" }
+		};
+
 		private string _src;
 
 		private string _target;
-
-		private bool _isCompressing;
 
 		private Process _process;
 
@@ -49,7 +52,14 @@ namespace _7zBatch {
 
 		public MainWindow() {
 			InitializeComponent();
+
+			Cmb_Method.ItemsSource = method;
+			Cmb_Method.SelectedValuePath = "Key";
+			Cmb_Method.DisplayMemberPath = "Value";
+			Cmb_Method.SelectedIndex = 1;
+
 			RefreshCmd();
+			
 		}
 
 		private void Btn_Browse_Src_Click(object sender, RoutedEventArgs e) {
@@ -193,6 +203,8 @@ namespace _7zBatch {
 		private void RefreshCmd() {
 			var cmd = CMD_ARGUMENTS_DEFAULT;
 
+			cmd += Cmb_Method.SelectedValue;
+
 			if (!Chk_Soild.IsChecked.GetValueOrDefault(false))
 				cmd += CMD_ARGUMENTS_SOLID;
 			if (!Chk_Attr.IsChecked.GetValueOrDefault(false))
@@ -214,5 +226,10 @@ namespace _7zBatch {
 		private void Chk_Timestamp_Checked(object sender, RoutedEventArgs e) {
 			RefreshCmd();
 		}
+
+		private void Cmb_Method_Changed(object sender, RoutedEventArgs e) {
+			RefreshCmd();
+		}
+
 	}
 }
