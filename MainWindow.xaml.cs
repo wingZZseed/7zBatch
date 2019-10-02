@@ -27,7 +27,15 @@ namespace _7zBatch {
 
 		private const string CMD = "7z.exe";
 
-		private const string CMD_ARGUMENTS = "a -y -r -ms=off -mx9 -mtm=off -mtr=off \"{0}\" \"{1}\"";
+		private const string CMD_ARGUMENTS_DEFAULT = "a -y -r -mx9";
+
+		private const string CMD_ARGUMENTS = " \"{0}\" \"{1}\"";
+
+		private const string CMD_ARGUMENTS_SOLID = " -ms=off";
+
+		private const string CMD_ARGUMENTS_TIMESTAMP = " -mtm=off";
+
+		private const string CMD_ARGUMENTS_ATTR = " -mtr=off";
 
 		private string _src;
 
@@ -41,6 +49,7 @@ namespace _7zBatch {
 
 		public MainWindow() {
 			InitializeComponent();
+			RefreshCmd();
 		}
 
 		private void Btn_Browse_Src_Click(object sender, RoutedEventArgs e) {
@@ -70,6 +79,18 @@ namespace _7zBatch {
 			}
 		}
 
+		private void Comproess(string cmd_arguments) {
+			_process = new Process();
+			_process.StartInfo.CreateNoWindow = true;
+			_process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+			_process.StartInfo.FileName = CMD;
+			_process.StartInfo.Arguments = cmd_arguments;
+			_process.EnableRaisingEvents = true;
+			_process.Start();
+			_process.WaitForExit();
+			_process.Dispose();
+		}
+
 		private void Btn_Compress_Click(object sender, RoutedEventArgs e) {
 			if (string.IsNullOrWhiteSpace(_src))
 				return;
@@ -80,10 +101,14 @@ namespace _7zBatch {
 			Btn_Compress.IsEnabled = false;
 			_isExit = false;
 
+			var cmd_arguments = Txt_Cmd.Text + CMD_ARGUMENTS;
+
 			Task.Factory.StartNew(() => {
 				DirectoryInfo di = new DirectoryInfo(_src);
-				FileInfo[] files = di.GetFiles("*.*");
-				var size = files.Count();
+
+				var dirs = di.GetDirectories();
+				var files = di.GetFiles();
+				var size = files.Length + dirs.Length;
 
 				Dispatcher.BeginInvoke(new Action(() => {
 					ProgressBar.Maximum = size;
@@ -91,26 +116,38 @@ namespace _7zBatch {
 				}));
 
 				int i = 0;
-				foreach (FileInfo fi in files) {
-					if (_isExit)
-						break;
-					string tar = _target + "\\" + System.IO.Path.GetFileNameWithoutExtension(fi.Name) + ".7z";
-					_process = new Process();
-					_process.StartInfo.CreateNoWindow = true;
-					_process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-					_process.StartInfo.FileName = CMD;
-					_process.StartInfo.Arguments = string.Format(CMD_ARGUMENTS, tar, fi.FullName);
-					_process.EnableRaisingEvents = true;
-					//_process.Exited += new EventHandler(proc_Exited);
-					_process.Start();
-					_process.WaitForExit();
-					_process.Dispose();
 
-					i++;
+				if (dirs.Length > 0) {
+					foreach (var d in dirs) {
+						if (_isExit)
+							break;
 
-					Dispatcher.BeginInvoke(new Action(() => {
-						ProgressBar.Value = i;
-					}));
+						string archive = _target + "\\" + d.Name + ".7z";
+						string fs = d.FullName + "\\*";
+
+						Comproess(string.Format(cmd_arguments, archive, fs));
+
+						i++;
+						Dispatcher.BeginInvoke(new Action(() => {
+							ProgressBar.Value = i;
+						}));
+					}
+				}
+
+				if (files.Length > 0) {
+					foreach (FileInfo fi in files) {
+						if (_isExit)
+							break;
+
+						string archive = _target + "\\" + System.IO.Path.GetFileNameWithoutExtension(fi.Name) + ".7z";
+
+						Comproess(string.Format(cmd_arguments, archive, fi.FullName));
+
+						i++;
+						Dispatcher.BeginInvoke(new Action(() => {
+							ProgressBar.Value = i;
+						}));
+					}
 				}
 
 				_process = null;
@@ -151,6 +188,31 @@ namespace _7zBatch {
 			} catch (Exception ex) {
 				MessageBox.Show(ex.Message);
 			}
+		}
+
+		private void RefreshCmd() {
+			var cmd = CMD_ARGUMENTS_DEFAULT;
+
+			if (!Chk_Soild.IsChecked.GetValueOrDefault(false))
+				cmd += CMD_ARGUMENTS_SOLID;
+			if (!Chk_Attr.IsChecked.GetValueOrDefault(false))
+				cmd += CMD_ARGUMENTS_ATTR;
+			if (!Chk_Timestamp.IsChecked.GetValueOrDefault(false))
+				cmd += CMD_ARGUMENTS_TIMESTAMP;
+
+			Txt_Cmd.Text = cmd;
+		}
+
+		private void Chk_Soild_Checked(object sender, RoutedEventArgs e) {
+			RefreshCmd();
+		}
+
+		private void Chk_Attr_Checked(object sender, RoutedEventArgs e) {
+			RefreshCmd();
+		}
+
+		private void Chk_Timestamp_Checked(object sender, RoutedEventArgs e) {
+			RefreshCmd();
 		}
 	}
 }
