@@ -5,22 +5,20 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:_7zBatch"
         mc:Ignorable="d"
-        Title="Auto Rename &amp; 7z Compress" Height="305" Width="300" ResizeMode="NoResize">
+        Title="Batch 7z Compression" Height="330" Width="300" ResizeMode="NoResize">
 	<Grid>
-		<TextBox Name="Txt_Src" IsReadOnly="True" Margin="10,10,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="180" Height="25" TextWrapping="NoWrap" VerticalContentAlignment="Center" />
-		<Button Name="Btn_Browse_Src" Margin="0,10,10,0" VerticalAlignment="Top" HorizontalAlignment="Right" Width="75" Height="25" Content="Browse" Click="Btn_Browse_Src_Click"/>
-		<TextBox Name="Txt_Target" IsReadOnly="True" Margin="10,45,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="180" Height="25" TextWrapping="NoWrap" VerticalContentAlignment="Center" />
-		<Button Name="Btn_Browse_Target" Margin="0,45,10,0" VerticalAlignment="Top" HorizontalAlignment="Right" Width="75" Height="25" Content="Browse" Click="Btn_Browse_Target_Click"/>
-		<TextBox Name="Txt_Cmd" Margin="10,80,0,0" IsReadOnly="True" VerticalAlignment="Top" HorizontalAlignment="Left" Width="264" Height="25" TextWrapping="NoWrap" VerticalContentAlignment="Center" />
-		
-		<ComboBox Name="Cmb_Method" HorizontalAlignment="Left" Margin="10,115,0,0" VerticalAlignment="Top" Width="120" SelectionChanged="Cmb_Method_Changed" />
-		
-		<CheckBox Name="Chk_Soild" Content="solid mode" HorizontalAlignment="Left" Margin="10,145,0,0" VerticalAlignment="Top" Click="Chk_Soild_Checked"/>
-		<CheckBox Name="Chk_Attr" Content="stores file attributes" HorizontalAlignment="Left" Margin="126,145,0,0" VerticalAlignment="Top" Click="Chk_Attr_Checked"/>
-		<CheckBox Name="Chk_Timestamp" Content="stores last modified timestamps for files" HorizontalAlignment="Left" Margin="10,170,0,0" VerticalAlignment="Top" Click="Chk_Timestamp_Checked"/>
-		<Button Name="Btn_Rename" Margin="10,195,0,0"  VerticalAlignment="Top" HorizontalAlignment="Left" Height="25" Width="75" Content="Rename" Click="Btn_Rename_Click"/>
-		<Button Name="Btn_Compress" Margin="0,195,10,0"  VerticalAlignment="Top" HorizontalAlignment="Right" Height="25" Width="180" Content="Compress" Click="Btn_Compress_Click"/>
-		<ProgressBar Name="ProgressBar" Height="25" Margin="10,230,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="180" />
-		<Button Name="Btn_Stop" Margin="0,230,10,0"  VerticalAlignment="Top" HorizontalAlignment="Right" Height="25" Width="75" Content="Stop" Click="Btn_Stop_Click"/>
+		<TextBox IsReadOnly="True" Margin="10,10,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="180" Height="25" TextWrapping="NoWrap" VerticalContentAlignment="Center" x:Name="Txt_Src" />
+		<TextBox IsReadOnly="True" Margin="10,45,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="180" Height="25" TextWrapping="NoWrap" VerticalContentAlignment="Center" x:Name="Txt_Target" />
+		<TextBox IsReadOnly="True" Margin="10,80,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="264" Height="25" TextWrapping="NoWrap" VerticalContentAlignment="Center" x:Name="Txt_Cmd" />
+		<ComboBox HorizontalAlignment="Left" Margin="10,115,0,0" VerticalAlignment="Top" Width="120" SelectionChanged="Cmb_Method_Changed" x:Name="Cmb_Method" />
+		<CheckBox HorizontalAlignment="Left" Margin="10,195,0,0" VerticalAlignment="Top" Click="Chk_Remove_Checked" x:Name="Chk_Remove" Content="delete source files after compression" />
+		<CheckBox HorizontalAlignment="Left" Margin="10,145,0,0" VerticalAlignment="Top" Click="Chk_Soild_Checked" x:Name="Chk_Soild" Content="solid mode" />
+		<CheckBox HorizontalAlignment="Left" Margin="126,145,0,0" VerticalAlignment="Top" Click="Chk_Attr_Checked" x:Name="Chk_Attr" Content="stores file attributes"/>
+		<CheckBox HorizontalAlignment="Left" Margin="10,170,0,0" VerticalAlignment="Top" Click="Chk_Timestamp_Checked" x:Name="Chk_Timestamp" Content="stores last modified timestamps for files"/>
+		<Button Margin="0,10,10,0" VerticalAlignment="Top" HorizontalAlignment="Right" Width="75" Height="25" Content="Browse" Click="Btn_Browse_Src_Click" x:Name="Btn_Browse_Src" />
+		<Button Margin="0,45,10,0" VerticalAlignment="Top" HorizontalAlignment="Right" Width="75" Height="25" Content="Browse" Click="Btn_Browse_Target_Click" x:Name="Btn_Browse_Target" />
+		<Button Margin="0,220,10,0"  VerticalAlignment="Top" HorizontalAlignment="Right" Height="25" Width="264" Content="Compress" Click="Btn_Compress_Click" x:Name="Btn_Compress" />
+		<Button Margin="0,255,10,0"  VerticalAlignment="Top" HorizontalAlignment="Right" Height="25" Width="75" Content="Stop" Click="Btn_Stop_Click" x:Name="Btn_Stop" />
+		<ProgressBar Height="25" Margin="10,255,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="180" x:Name="ProgressBar" />
 	</Grid>
 </Window>

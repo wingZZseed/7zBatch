@@ -17,13 +17,13 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace _7zBatch {
+namespace _7zBatch
+{
 	/// <summary>
 	/// MainWindow.xaml 的交互逻辑
 	/// </summary>
-	public partial class MainWindow : Window {
-
-		private const string PATTERN = "^\\d{4}\\s\\-\\s";
+	public partial class MainWindow : Window
+	{
 
 		private const string CMD = "7z.exe";
 
@@ -37,7 +37,7 @@ namespace _7zBatch {
 
 		private const string CMD_ARGUMENTS_ATTR = " -mtr=off";
 
-		private Dictionary<string, string> method = new Dictionary<string, string>() {
+		private readonly Dictionary<string, string> method = new Dictionary<string, string>() {
 			{ " -m0=LZMA", "LZMA" },
 			{ "", "LZMA2" }
 		};
@@ -50,46 +50,30 @@ namespace _7zBatch {
 
 		private volatile bool _isExit;
 
-		public MainWindow() {
+		public MainWindow()
+		{
 			InitializeComponent();
+			BindMethodDataSource();
+			RefreshCmd();
+		}
 
+		/// <summary>
+		/// 绑定压缩方法数据源
+		/// </summary>
+		private void BindMethodDataSource()
+		{
 			Cmb_Method.ItemsSource = method;
 			Cmb_Method.SelectedValuePath = "Key";
 			Cmb_Method.DisplayMemberPath = "Value";
-			Cmb_Method.SelectedIndex = 1;
-
-			RefreshCmd();
-			
+			Cmb_Method.SelectedIndex = 0;
 		}
 
-		private void Btn_Browse_Src_Click(object sender, RoutedEventArgs e) {
-			CommonOpenFileDialog dialog = new CommonOpenFileDialog { IsFolderPicker = true };
-			if (dialog.ShowDialog() != CommonFileDialogResult.Ok)
-				return;
-			Txt_Src.Text = _src = dialog.FileName;
-		}
-
-		private void Btn_Browse_Target_Click(object sender, RoutedEventArgs e) {
-			CommonOpenFileDialog dialog = new CommonOpenFileDialog { IsFolderPicker = true };
-			if (dialog.ShowDialog() != CommonFileDialogResult.Ok)
-				return;
-			Txt_Target.Text = _target = dialog.FileName;
-		}
-
-		private void Btn_Rename_Click(object sender, RoutedEventArgs e) {
-			if (string.IsNullOrWhiteSpace(_src))
-				return;
-			DirectoryInfo di = new DirectoryInfo(_src);
-			FileInfo[] files = di.GetFiles("*.*");
-			foreach (FileInfo fi in files) {
-				string name = Regex.Replace(fi.Name, PATTERN, "");
-				Console.WriteLine(fi.DirectoryName);
-				if (!name.Equals(fi.Name))
-					fi.MoveTo(fi.DirectoryName + "\\" + name);
-			}
-		}
-
-		private void Comproess(string cmd_arguments) {
+		/// <summary>
+		/// 压缩
+		/// </summary>
+		/// <param name="cmd_arguments"></param>
+		private void Comproess(string cmd_arguments)
+		{
 			_process = new Process();
 			_process.StartInfo.CreateNoWindow = true;
 			_process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
@@ -101,106 +85,115 @@ namespace _7zBatch {
 			_process.Dispose();
 		}
 
-		private void Btn_Compress_Click(object sender, RoutedEventArgs e) {
+		/// <summary>
+		/// 开始压缩
+		/// </summary>
+		/// <param name="sender"></param>
+		/// <param name="e"></param>
+		private void Btn_Compress_Click(object sender, RoutedEventArgs e)
+		{
+			if (!File.Exists(CMD))
+			{
+				MessageBox.Show("7z.exe not found.");
+				return;
+			}
+
 			if (string.IsNullOrWhiteSpace(_src))
 				return;
+
+			// 如果未设置目标文件夹，则默认为源文件夹同目录
 			if (string.IsNullOrWhiteSpace(_target))
-				return;
+				_target = _src;
 
-			Btn_Rename.IsEnabled = false;
-			Btn_Compress.IsEnabled = false;
-			_isExit = false;
+			var cmdArguments = Txt_Cmd.Text + CMD_ARGUMENTS;
+			var isRemoveOnCompleted = Chk_Remove.IsChecked.GetValueOrDefault(false);
 
-			var cmd_arguments = Txt_Cmd.Text + CMD_ARGUMENTS;
+			// 开启新线程
+			Task.Factory.StartNew(() =>
+			{
+				_isExit = false;
 
-			Task.Factory.StartNew(() => {
+				UI_OnStart();
+
 				DirectoryInfo di = new DirectoryInfo(_src);
 
 				var dirs = di.GetDirectories();
 				var files = di.GetFiles();
 				var size = files.Length + dirs.Length;
 
-				Dispatcher.BeginInvoke(new Action(() => {
-					ProgressBar.Maximum = size;
-					ProgressBar.Value = 0;
-				}));
+				UI_ProgressBar_Set(0, size);
 
 				int i = 0;
 
-				if (dirs.Length > 0) {
-					foreach (var d in dirs) {
+				if (dirs.Length > 0)
+				{
+					foreach (var d in dirs)
+					{
 						if (_isExit)
 							break;
 
 						string archive = _target + "\\" + d.Name + ".7z";
 						string fs = d.FullName + "\\*";
 
-						Comproess(string.Format(cmd_arguments, archive, fs));
+						Comproess(string.Format(cmdArguments, archive, fs));
 
-						i++;
-						Dispatcher.BeginInvoke(new Action(() => {
-							ProgressBar.Value = i;
-						}));
+						if (isRemoveOnCompleted)
+							Directory.Delete(d.FullName, true);
+
+						UI_ProgressBar_Set(++i);
 					}
 				}
 
-				if (files.Length > 0) {
-					foreach (FileInfo fi in files) {
+				if (files.Length > 0)
+				{
+					foreach (FileInfo fi in files)
+					{
 						if (_isExit)
 							break;
 
 						string archive = _target + "\\" + System.IO.Path.GetFileNameWithoutExtension(fi.Name) + ".7z";
 
-						Comproess(string.Format(cmd_arguments, archive, fi.FullName));
+						Comproess(string.Format(cmdArguments, archive, fi.FullName));
 
-						i++;
-						Dispatcher.BeginInvoke(new Action(() => {
-							ProgressBar.Value = i;
-						}));
+						if (isRemoveOnCompleted)
+							File.Delete(fi.FullName);
+
+						UI_ProgressBar_Set(++i);
 					}
 				}
 
 				_process = null;
 
-				var flag = _isExit;
-				_isExit = false;
+				UI_OnStop(_isExit);
 
-				Dispatcher.BeginInvoke(new Action(() => {
-					if (flag)
-						MessageBox.Show("Stop!");
-					else
-						MessageBox.Show("Compress Completed!");
-					ResetUI();
-				}));
+				_isExit = false;
 			});
 		}
 
-		private void ResetUI() {
-			Btn_Rename.IsEnabled = true;
-			Btn_Compress.IsEnabled = true;
-			ProgressBar.Value = 0;
-		}
-
-		private void proc_Exited(object sender, EventArgs e) {
-			Dispatcher.BeginInvoke(new Action(() => {
-				MessageBox.Show("Exit!");
-				ResetUI();
-			}));
-		}
-
-		private void Btn_Stop_Click(object sender, RoutedEventArgs e) {
+		/// <summary>
+		/// 停止压缩
+		/// </summary>
+		/// <param name="sender"></param>
+		/// <param name="e"></param>
+		private void Btn_Stop_Click(object sender, RoutedEventArgs e)
+		{
 			_isExit = true;
 
-			try {
-				if (_process != null && !_process.HasExited) {
+			try
+			{
+				if (_process != null && !_process.HasExited)
+				{
 					_process.Kill();
 				}
-			} catch (Exception ex) {
+			}
+			catch (Exception ex)
+			{
 				MessageBox.Show(ex.Message);
 			}
 		}
 
-		private void RefreshCmd() {
+		private void RefreshCmd()
+		{
 			var cmd = CMD_ARGUMENTS_DEFAULT;
 
 			cmd += Cmb_Method.SelectedValue;
@@ -215,20 +208,94 @@ namespace _7zBatch {
 			Txt_Cmd.Text = cmd;
 		}
 
-		private void Chk_Soild_Checked(object sender, RoutedEventArgs e) {
+		/// <summary>
+		/// 浏览源文件夹
+		/// </summary>
+		/// <param name="sender"></param>
+		/// <param name="e"></param>
+		private void Btn_Browse_Src_Click(object sender, RoutedEventArgs e)
+		{
+			CommonOpenFileDialog dialog = new CommonOpenFileDialog { IsFolderPicker = true };
+			if (dialog.ShowDialog() != CommonFileDialogResult.Ok)
+				return;
+			Txt_Src.Text = _src = dialog.FileName;
+		}
+
+		/// <summary>
+		/// 浏览目标文件夹
+		/// </summary>
+		/// <param name="sender"></param>
+		/// <param name="e"></param>
+		private void Btn_Browse_Target_Click(object sender, RoutedEventArgs e)
+		{
+			CommonOpenFileDialog dialog = new CommonOpenFileDialog { IsFolderPicker = true };
+			if (dialog.ShowDialog() != CommonFileDialogResult.Ok)
+				return;
+			Txt_Target.Text = _target = dialog.FileName;
+		}
+
+		private void Chk_Remove_Checked(object sender, RoutedEventArgs e)
+		{
+			// donothing
+		}
+
+		private void Chk_Soild_Checked(object sender, RoutedEventArgs e)
+		{
 			RefreshCmd();
 		}
 
-		private void Chk_Attr_Checked(object sender, RoutedEventArgs e) {
+		private void Chk_Attr_Checked(object sender, RoutedEventArgs e)
+		{
 			RefreshCmd();
 		}
 
-		private void Chk_Timestamp_Checked(object sender, RoutedEventArgs e) {
+		private void Chk_Timestamp_Checked(object sender, RoutedEventArgs e)
+		{
 			RefreshCmd();
 		}
 
-		private void Cmb_Method_Changed(object sender, RoutedEventArgs e) {
+		private void Cmb_Method_Changed(object sender, RoutedEventArgs e)
+		{
 			RefreshCmd();
+		}
+
+		private void UI_OnStart()
+		{
+			Dispatcher.BeginInvoke(new Action(() =>
+			{
+				Btn_Compress.IsEnabled = false;
+			}));
+		}
+
+		private void UI_OnStop(bool isExit)
+		{
+			Dispatcher.BeginInvoke(new Action(() =>
+			{
+				if (isExit)
+					MessageBox.Show("Stop!");
+				else
+					MessageBox.Show("Compress Completed!");
+
+				Btn_Compress.IsEnabled = true;
+				ProgressBar.Value = 0;
+			}));
+		}
+
+		private void UI_ProgressBar_Set(int value)
+		{
+			Dispatcher.BeginInvoke(new Action(() =>
+			{
+				ProgressBar.Value = value;
+			}));
+		}
+
+		private void UI_ProgressBar_Set(int value, int maximum)
+		{
+			Dispatcher.BeginInvoke(new Action(() =>
+			{
+				ProgressBar.Maximum = maximum;
+				ProgressBar.Value = value;
+			}));
 		}
 
 	}
